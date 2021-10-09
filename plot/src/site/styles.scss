@@ -1,0 +1,32 @@
+.bike-thefts,
+.bike-thefts * {
+  letter-spacing: normal !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  line-height: normal !important;
+
+  h1,
+  h3,
+  p {
+    margin: 0;
+  }
+
+  h3 {
+    font-weight: 100;
+  }
+
+  a,
+  a:link,
+  a:active,
+  a:visited,
+  a:hover {
+    color: black;
+    text-decoration: none;
+  }
+  button.campusMapButton {
+    background: white;
+    margin: 5px;
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 12pt
+  }
+}
