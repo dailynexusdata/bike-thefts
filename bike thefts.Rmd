@@ -1,0 +1,231 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Make new cell: CTLR+ALT+I
+
+Arrow: ALT+-
+
+```{r}
+setwd('/Users/stellajia/Desktop/UCSB/Daily_Nexus/bike-thefts-main 2')
+```
+
+```{r}
+# install.packages(c("tidyverse", "lubridate"))
+
+library(tidyverse)
+library(lubridate)
+data <- read.csv("bikes.csv")
+```
+
+
+```{r, size.width=5}
+bike.data <- data %>%
+  mutate(
+    incl_rack = str_match(General.Location, "BIKE RACKS?"),
+    date = lubridate::parse_date_time(Date.Reported, "%m/%d/%Y")
+  ) %>%
+  drop_na() 
+
+
+bike.data %>%
+  filter(Nature..Classification. == "Larceny-Theft") %>%
+  mutate(
+    when = ifelse(date >= parse_date_time("9/19/2021", "%m/%d/%Y"), "before", "after")
+  ) %>%
+  group_by(date, when) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  ggplot(aes(x = date, y = count)) +
+    geom_bar(aes(fill=when), stat="identity") +
+    labs(x = "", y = "# of reported thefts", title="Bike thefts increase since move in weekend",
+         caption="Source: UCPD Daily Crime Log") +
+    scale_y_continuous(breaks=c(0, 4, 8), expand=c(0, 0.15)) +
+    scale_x_time(
+      breaks=parse_date_time(c("2021-8-1", "2021-8-15", "2021-9-1", "2021-9-15", "2021-10-1"), "%Y-%m-%d"), 
+      labels=c("Aug. 1", "Aug. 15", "Aug. 31", "Sept. 15", "Oct. 1")
+    ) +
+    scale_fill_manual(values=c(`after`="#d3d3d3", `before`="#4E79A7")) +
+    theme_minimal() +
+    theme(
+      legend.position="none",
+      text=element_text(size=14),
+      panel.grid.minor.x = element_blank(),
+      panel.grid.major.x = element_blank(),
+      axis.ticks.x = element_line(color="gray"),
+      axis.ticks.length = unit(5, "points"),
+    ) +
+    annotate(geom="text", x = parse_date_time("9/19/2021 12:00", "%m/%d/%Y %H:%M"), y = 9.85, label="Move-in weekend,", hjust=0.5) +
+    annotate(geom="text", x = parse_date_time("9/19/2021 12:00", "%m/%d/%Y %H:%M"), y = 9.35, label="Sept. 23.", hjust=1) +
+    annotate(geom="segment", x = parse_date_time("9/18/2021 12:00", "%m/%d/%Y %H:%M"), xend=parse_date_time("9/18/2021 12:00", "%m/%d/%Y %H:%M"), y = 0, yend = 9)
+   # geom_smooth(se=F)
+    NULL
+    
+
+parse_date_time(c("2021-8-1", "2021-8-15", "2021-9-1", "2021-9-15", "2021-10-1"), "%Y-%m-%d")
+```
+
+```{r}
+bike.data %>%
+  filter(Nature..Classification. == "Larceny-Theft") %>%
+  filter(date >= parse_date_time("9/23/2021", "%m/%d/%Y"))
+```
+
+For map::
+
+```{r}
+location.data <- bike.data %>%
+  filter(date >= parse_date_time("9/19/2021", "%m/%d/%Y")) %>%
+  select(date, loc=General.Location, clas=Nature..Classification.) %>%
+  mutate(
+    loc = str_to_title(str_replace_all(loc, " BIKE RACKS", "")),
+    clas = str_replace(clas, "-", "/")
+  )
+
+location.data
+
+location.data %>%
+  mutate(loc = ifelse(loc == "San Joaquin Apartments", "San Joaquin Villages", loc)) %>%
+  write.csv("plot/dist/data/location_data.csv", row.names=F)
+
+unique(location.data$loc)
+```
+
+# updated bike theft data 
+
+Runs the entrie cell: CTRL+SHIFT+ENTER
+Runds current line: CTRL+ENTER
+
+```{r}
+library(tidyverse)
+library(lubridate)
+
+data <- read.csv("biketheftupdate.csv") %>%
+  mutate(
+    date = lubridate::parse_date_time(Date.Reported, "%m/%d/%Y")
+  ) %>%
+  select(date, crime=Crimes, location=Location)
+```
+
+```{r}
+# Get start week date:
+data <- data %>%
+  mutate(
+    start_date = lubridate::floor_date(date, unit="month")
+  )
+```
+
+```{r}
+# get data for start of school year
+
+# make objects for each start date
+d2018 <- date("2018-09-23")
+d2019 <- date("2019-09-22")
+d2020 <- date("2020-09-27")
+d2021 <- date("2021-09-19")
+
+# create vector to hold start datse
+start.dates <- c(d2018, d2019, d2020, d2021)
+
+# add column to data frame 
+data <- data %>%
+  mutate(
+    start = start.dates[year(date) - 2018 + 1], 
+    dist = interval(start, date) / days(1)
+  ) 
+
+# filter out values >= 0 and <= 30
+data %>%
+  filter(dist>=0 & dist<=30) %>% 
+  group_by(year(start)) %>% 
+  count()
+  
+# use dplyr to group by year -> count # of rows in each yr = # of thefts
+  
+```
+
+```{r}
+# Group data by the week:
+grouped.week <- data %>%
+  group_by(start_date) %>%
+  summarise(n = n())
+
+grouped.week %>%
+  filter(month(start_date) %in% 8:10)
+
+# make plot:
+grouped.week %>%
+  mutate(
+    when = ifelse(start_date >= lubridate::parse_date_time("9/19/2021", "%m/%d/%Y"), "after", "before")
+  ) %>%
+  ggplot(aes(x = start_date, y = n, fill = when)) +
+    geom_bar(stat="identity")
+```
+
+
+```{r}
+data %>%
+  filter(Nature..Classification. == "Larceny-Theft") %>%
+  filter(date >= parse_date_time("9/23/2020", "%m/%d/%Y"))
+```
+
+
+```{r}
+data %>%
+  group_by(start_date) %>%
+  summarise(
+    n = n()
+  ) %>%
+  mutate(
+    when = ifelse(start_date >= lubridate::parse_date_time("9/19/2021", "%m/%d/%Y"), "before", "after")
+  ) %>%
+  ggplot(aes(x = start_date, y = n)) +
+    geom_bar(aes(fill=when), stat="identity") +
+    labs(x = "", y = "weekly # of reported thefts", title="Bike thefts increase since move in weekend",
+           caption="Source: UCPD Daily Crime Log") +
+      scale_y_continuous(expand=c(0, 0.15)) +
+    #  scale_x_time(
+    #    breaks=lubridate::parse_date_time(c("2021-8-1", "2021-8-15", "2021-9-1", "2021-9-15", "2021-10-1"), "%Y-%m-%d"), 
+    #    labels=c("Aug. 1", "Aug. 15", "Aug. 31", "Sept. 15", "Oct. 1")
+    #  ) +
+      scale_fill_manual(values=c(`after`="#d3d3d3", `before`="#4E79A7")) +
+      theme_minimal() +
+      theme(
+        legend.position="none",
+        text=element_text(size=14),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        axis.ticks.x = element_line(color="gray"),
+        axis.ticks.length = unit(5, "points"),
+      )
+   #   annotate(geom="text", x = lubridate::parse_date_time("9/19/2021 12:00", "%m/%d/%Y %H:%M"), y = 9.85, label="Move-in weekend,", hjust=0.5) +
+  #    annotate(geom="text", x = lubridate::parse_date_time("9/19/2021 12:00", "%m/%d/%Y %H:%M"), y = 9.35, label="Sept. 23.", hjust=1) +
+  #    annotate(geom="segment", x = lubridate::parse_date_time("9/18/2021 12:00", "%m/%d/%Y %H:%M"), xend=lubridate::parse_date_time("9/18/2021 12:00", "%m/%d/%Y %H:%M"), y = 0, yend = 9)
+```
+
+```{r}
+data %>%
+  mutate(
+    start_date = lubridate::floor_date(date, unit="month")
+  ) %>%
+  group_by(start_date, crime) %>%
+  count() %>%
+  ungroup() %>%
+  ggplot(aes(x = start_date, y = n, fill=crime)) +
+    geom_bar(stat="identity", position="stack")
+```
+
+```{r}
+data %>%
+  select(date, location) %>%
+  mutate(
+    loc = str_replace(location, " B\\d{3}", ""),
+    loc = str_replace(loc, " \\(\\w+\\)", ""),
+    loc = str_replace(loc," ISLAND CLUSTERS", ""),
+    loc = str_replace(loc," \\((NEW|OLD) MARRIED\\)", "")
+  ) %>%
+  pull(loc) %>%
+  unique()
+```
+
