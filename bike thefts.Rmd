@@ -112,7 +112,7 @@ data <- read.csv("ucpd.csv") %>%
 # Get start week date:
 data <- data %>%
   mutate(
-    start_date = lubridate::floor_date(date, unit="month")
+    start_date = lubridate::floor_date(date, unit="week")
   )
 ```
 
@@ -135,7 +135,6 @@ grouped.week %>%
     geom_bar(stat="identity")
 ```
 
-
 ```{r}
 data %>%
   group_by(start_date) %>%
@@ -147,8 +146,8 @@ data %>%
   ) %>%
   ggplot(aes(x = start_date, y = n)) +
     geom_bar(aes(fill=when), stat="identity") +
-    labs(x = "", y = "weekly # of reported thefts", title="Bike thefts increase since move in weekend",
-           caption="Source: UCPD Daily Crime Log") +
+    labs(x = "", y = "weekly # of reported thefts", title="This Year Had the Most Bike Thefts Following Move-in Weekend\nSince 2018",
+           caption="Source: UCPD Reported Bike Thefts") +
       scale_y_continuous(expand=c(0, 0.15)) +
     #  scale_x_time(
     #    breaks=lubridate::parse_date_time(c("2021-8-1", "2021-8-15", "2021-9-1", "2021-9-15", "2021-10-1"), "%Y-%m-%d"), 
@@ -163,10 +162,9 @@ data %>%
         panel.grid.major.x = element_blank(),
         axis.ticks.x = element_line(color="gray"),
         axis.ticks.length = unit(5, "points"),
-      )
-   #   annotate(geom="text", x = lubridate::parse_date_time("9/19/2021 12:00", "%m/%d/%Y %H:%M"), y = 9.85, label="Move-in weekend,", hjust=0.5) +
-  #    annotate(geom="text", x = lubridate::parse_date_time("9/19/2021 12:00", "%m/%d/%Y %H:%M"), y = 9.35, label="Sept. 23.", hjust=1) +
-  #    annotate(geom="segment", x = lubridate::parse_date_time("9/18/2021 12:00", "%m/%d/%Y %H:%M"), xend=lubridate::parse_date_time("9/18/2021 12:00", "%m/%d/%Y %H:%M"), y = 0, yend = 9)
+      ) +
+      annotate(geom="text", x = lubridate::parse_date_time("9/19/2021 12:00", "%m/%d/%Y %H:%M"), y = 27, label="Thefts since Move-in", hjust=1.05) +
+      annotate(geom="text", x = lubridate::parse_date_time("9/19/2021 12:00", "%m/%d/%Y %H:%M"), y = 25.5, label="weekend 2021", hjust=1.05)
 ```
 
 ```{r}
@@ -183,14 +181,41 @@ data %>%
 
 ```{r}
 data %>%
+  filter(start_date >= lubridate::parse_date_time("9/19/2021", "%m/%d/%Y")) %>%
   select(date, location) %>%
   mutate(
     loc = str_replace(location, " B\\d{3}", ""),
     loc = str_replace(loc, " \\(\\w+\\)", ""),
     loc = str_replace(loc," ISLAND CLUSTERS", ""),
-    loc = str_replace(loc," \\((NEW|OLD) MARRIED\\)", "")
+    loc = str_replace(loc," \\((NEW|OLD) MARRIED\\)", ""),
+    loc = ifelse(loc == "ARTS", "Arts Building", loc),
+    loc = str_replace(loc, "- .*", "")
   ) %>%
-  pull(loc) %>%
-  unique()
+  mutate(loc = ifelse(loc == "CARRILLO DINING COMMONS MANZANITA", "Carrillo Dining Commons", loc)) %>%
+  mutate(loc = ifelse(!is.na(str_match(loc, "MANZANITA")), "Manzanita", loc)) %>%
+  mutate(loc = ifelse(!is.na(str_match(loc, "SAN JOAQUIN")), "San Joaquin", loc)) %>%
+  mutate(loc = ifelse(!is.na(str_match(loc, "SAN CLEMENTE")), "San Clemente", loc)) %>%
+  mutate(loc = ifelse(!is.na(str_match(loc, "SMV")), "SMV", loc)) %>%
+  filter(loc != "EMBARCADERO DEL NORTE") %>%
+  mutate(loc = str_to_title(loc)) %>%
+  group_by(loc) %>%
+  count() %>%
+  ungroup() %>%
+  arrange(desc(n))# %>%
+  write.csv("map_since_9_19.csv", row.names=F)
+```
+
+```{r}
+locations <- read.csv("locations.csv")
+
+locations %>%
+  mutate(building = ifelse(building == "Carrillo Dining Commons Manzanita", "Carrillo Dining Commons", building)) %>%
+  mutate(building = ifelse(!is.na(str_match(building, "Manzanita")), "Manzanita", building)) %>%
+  mutate(building = ifelse(!is.na(str_match(building, "San Joaquin")), "San Joaquin", building)) %>%
+  mutate(building = ifelse(!is.na(str_match(building, "San Clemente")), "San Clemente", building)) %>%
+  mutate(building = ifelse(!is.na(str_match(building, "Smv")), "Sierra Madre Villages", building)) %>%
+  group_by(building) %>%
+  summarise_all(first) %>%
+  write.csv("locations.csv", row.names=F)
 ```
 

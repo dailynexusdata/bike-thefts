@@ -5,9 +5,9 @@ import { select } from 'd3-selection';
 import { latLng } from 'leaflet';
 import GetMap from './getMap';
 
-const getLatLng = (map, { lat, lng }) => {
+const getLatLng = (map, { lat, lon }) => {
   // eslint-disable-next-line new-cap
-  const ll = new latLng(lat, lng);
+  const ll = new latLng(+lat, +lon);
   return map.latLngToLayerPoint(ll);
 };
 
@@ -17,9 +17,7 @@ const main = (data, locs) => {
     'bike-thefts',
   );
 
-  container
-    .append('h1')
-    .text('Bike lot locations of larceny/theft/vandalism since August');
+  container.append('h1').text('Locations of Bike Thefts 9/19 - 10/14');
   container.append('div').attr('id', 'bike-theft-loc-map');
 
   container
@@ -30,35 +28,72 @@ const main = (data, locs) => {
     )
     .text('Source: UCPD Daily Crime Log');
 
-  const [map, svg] = new GetMap('bike-theft-loc-map');
+  const [map, svg] = new GetMap('bike-theft-loc-map', false);
 
-  const combined = nest()
-    .key((d) => d.loc)
-    .entries(
-      data.map((d) => ({
-        ...d,
-        ll: locs.find((l) => l.name === d.loc),
-      })),
-    );
+  const combined = data.map((d) => ({
+    ...d,
+    ll: locs.find((l) => l.building === d.loc),
+  }));
+
+  console.log(combined);
 
   const r = scaleLinear()
-    .domain([0, max(combined, (d) => d.values.length)])
+    .domain([0, max(combined, (d) => d.n)])
     .range([2, 10]);
 
+  const svgG = svg.append('g');
   const update = () => {
-    const circs = svg.selectAll('circle').data(combined);
+    const circs = svg.selectAll('.bike-theft-circlePts').data(combined);
 
     circs
       .enter()
       .append('circle')
+      .attr('class', 'bike-theft-circlePts')
       .attr('fill', '#E15759')
-      .attr('r', (d) => r(d.values.length))
-      .attr('cx', (d) => getLatLng(map, d.values[0].ll).x)
-      .attr('cy', (d) => getLatLng(map, d.values[0].ll).y);
+      .attr('r', (d) => r(d.n))
+      .attr('cx', (d) => getLatLng(map, d.ll).x)
+      .attr('cy', (d) => getLatLng(map, d.ll).y);
 
     circs
-      .attr('cx', (d) => getLatLng(map, d.values[0].ll).x)
-      .attr('cy', (d) => getLatLng(map, d.values[0].ll).y);
+      .attr('cx', (d) => getLatLng(map, d.ll).x)
+      .attr('cy', (d) => getLatLng(map, d.ll).y);
+    const pt = getLatLng(map, {
+      lat: 34.403243170284576,
+      lon: -119.88137054417167,
+    });
+    svgG.attr('transform', `translate(${pt.x}, ${pt.y})`);
+
+    const legend = svgG
+      .selectAll('.bike-theft-map-leg')
+      .data([1, 5, 7])
+      .enter()
+      .append('g')
+      .attr('class', 'bike-theft-map-leg');
+
+    legend
+      .append('circle')
+      .attr('r', (d) => r(d))
+      .attr('cx', (d, i) => i * 40 + 5)
+      .attr('fill', '#E15759')
+      .attr('fill-opacity', 0.9)
+      .attr('cy', 25);
+
+    legend
+      .append('text')
+      .text((d, i) => d + (i === 2 ? ' thefts' : ''))
+      .attr('x', (d, i) => i * 40)
+      .attr('y', 55)
+      .attr('fill', '#E15759')
+      .attr('text-anchor', 'start')
+      .attr('font-size', '13pt');
+
+    legend
+      .append('text')
+      .text('Bike Thefts Since 9/19/2021')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('fill', '#E15759')
+      .attr('font-size', '15pt');
   };
 
   map.on('moveend', () => {

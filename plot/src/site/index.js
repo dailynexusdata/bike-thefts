@@ -3,8 +3,7 @@
  * @since 2021-10-03
  */
 import './styles.scss';
-import { csv, json } from 'd3-fetch';
-import { timeParse } from 'd3-time-format';
+import { csv } from 'd3-fetch';
 import makeBikeMap from '../plots/bikemap';
 
 // import plot functions here:
@@ -12,14 +11,12 @@ import makeBikeMap from '../plots/bikemap';
 
 const main = async () => {
   // import data - use csv or json:
-  const time = timeParse('%Y-%m-%d');
-
-  const data = await csv('dist/data/location_data.csv', (d) => ({
+  const data = await csv('dist/data/map_since_9_19.csv', (d) => ({
     ...d,
-    date: time(d.date),
+    n: +d.n,
   }));
 
-  const locs = await json('dist/data/locations.json');
+  const locs = await csv('dist/data/locations.csv');
 
   const resize = () => {
     // call imported plots here:
