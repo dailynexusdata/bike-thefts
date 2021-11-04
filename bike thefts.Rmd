@@ -118,6 +118,11 @@ data <- data %>%
 
 
 ```{r}
+
+```
+
+
+```{r}
 # Group data by the week:
 grouped.week <- data %>%
   group_by(start_date) %>%
@@ -146,7 +151,7 @@ data %>%
   ) %>%
   ggplot(aes(x = start_date, y = n)) +
     geom_bar(aes(fill=when), stat="identity") +
-    labs(x = "", y = "weekly # of reported thefts", title="This Year Had the Most Bike Thefts Following Move-in Weekend\nSince 2018",
+    labs(x = "", y = "weekly # of reported bike thefts", title="This Year Had the Most Bike Thefts Following Move-in Weekend\nSince 2018",
            caption="Source: UCPD Reported Bike Thefts") +
       scale_y_continuous(expand=c(0, 0.15)) +
     #  scale_x_time(
@@ -163,7 +168,7 @@ data %>%
         axis.ticks.x = element_line(color="gray"),
         axis.ticks.length = unit(5, "points"),
       ) +
-      annotate(geom="text", x = lubridate::parse_date_time("9/19/2021 12:00", "%m/%d/%Y %H:%M"), y = 27, label="Thefts since Move-in", hjust=1.05) +
+      annotate(geom="text", x = lubridate::parse_date_time("9/19/2021 12:00", "%m/%d/%Y %H:%M"), y = 27, label="Thefts since move-in", hjust=1.05) +
       annotate(geom="text", x = lubridate::parse_date_time("9/19/2021 12:00", "%m/%d/%Y %H:%M"), y = 25.5, label="weekend 2021", hjust=1.05)
 ```
 
@@ -201,7 +206,7 @@ data %>%
   group_by(loc) %>%
   count() %>%
   ungroup() %>%
-  arrange(desc(n))# %>%
+  arrange(desc(n)) %>%
   write.csv("map_since_9_19.csv", row.names=F)
 ```
 
