@@ -17,7 +17,7 @@ const main = (data, locs) => {
     'bike-thefts',
   );
 
-  container.append('h1').text('Locations of Bike Thefts 9/19 - 10/14');
+  container.append('h1').text('Locations of Bike Thefts From 9/19 - 10/18');
   container.append('div').attr('id', 'bike-theft-loc-map');
 
   container
@@ -39,7 +39,7 @@ const main = (data, locs) => {
 
   const r = scaleLinear()
     .domain([0, max(combined, (d) => d.n)])
-    .range([2, 10]);
+    .range([2, 8]);
 
   const svgG = svg.append('g');
   const update = () => {
@@ -65,7 +65,7 @@ const main = (data, locs) => {
 
     const legend = svgG
       .selectAll('.bike-theft-map-leg')
-      .data([1, 5, 7])
+      .data([1, 5, 11])
       .enter()
       .append('g')
       .attr('class', 'bike-theft-map-leg');
